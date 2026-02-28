@@ -9,8 +9,7 @@ function switchTab(tabId, event) {
     }
 
     if (tabId === 'dashboard') loadDashboardStats();
-    stopQRScanner(); // Stop camera if they switch tabs
-    document.getElementById('global-qr-group').style.display = 'none';
+    stopQRScanner(); 
 }
 
 // 2. Dashboard Logic
@@ -36,25 +35,19 @@ async function loadDashboardStats() {
 
 // 3. Search Mode Switching & QR Logic
 let html5QrcodeScanner = null;
-let currentScannerContext = 'reg'; // Tracks which tab activated the camera
 
-function switchSearchMode(mode, context, event) {
-    currentScannerContext = context;
-    
-    // Highlight the correct tab within the section
-    const activeSection = document.getElementById(context === 'reg' ? 'registration' : 'timed-bibs');
-    activeSection.querySelectorAll('.search-tab').forEach(tab => tab.classList.remove('active'));
+function switchSearchMode(mode, event) {
+    document.querySelectorAll('#registration .search-tab').forEach(tab => tab.classList.remove('active'));
     if (event) event.currentTarget.classList.add('active');
 
-    const inputGroup = document.getElementById(context === 'reg' ? 'manual-input-group' : 'timed-manual-input-group');
-    const qrGroup = document.getElementById('global-qr-group');
-    const searchInput = document.getElementById(context === 'reg' ? 'search-input' : 'timed-search-input');
+    const inputGroup = document.getElementById('manual-input-group');
+    const qrGroup = document.getElementById('qr-reader-group');
+    const searchInput = document.getElementById('search-input');
     
-    document.getElementById(context === 'reg' ? 'registration-results' : 'timed-results').innerHTML = "";
+    document.getElementById('registration-results').innerHTML = "";
 
     if (mode === 'qr') {
         inputGroup.style.display = 'none';
-        activeSection.insertBefore(qrGroup, activeSection.lastElementChild); // Move scanner UI to active tab
         qrGroup.style.display = 'block';
         startQRScanner();
     } else {
@@ -84,28 +77,21 @@ function stopQRScanner() {
 
 function onScanSuccess(decodedText) {
     stopQRScanner();
-    document.getElementById('global-qr-group').style.display = 'none';
+    document.getElementById('qr-reader-group').style.display = 'none';
+    document.getElementById('manual-input-group').style.display = 'flex';
     
-    const inputGroup = document.getElementById(currentScannerContext === 'reg' ? 'manual-input-group' : 'timed-manual-input-group');
-    const searchInput = document.getElementById(currentScannerContext === 'reg' ? 'search-input' : 'timed-search-input');
-    
-    inputGroup.style.display = 'flex';
+    const searchInput = document.getElementById('search-input');
     searchInput.value = decodedText;
     
-    // Reset tabs back to ID visually
-    const activeSection = document.getElementById(currentScannerContext === 'reg' ? 'registration' : 'timed-bibs');
-    activeSection.querySelectorAll('.search-tab')[0].classList.add('active');
-    activeSection.querySelectorAll('.search-tab')[2].classList.remove('active');
+    document.querySelectorAll('#registration .search-tab')[0].classList.add('active');
+    document.querySelectorAll('#registration .search-tab')[2].classList.remove('active');
 
-    if (currentScannerContext === 'reg') handleSearch();
-    else handleTimedSearch();
+    handleSearch();
 }
 
 function onScanFailure(error) {}
 
-// ==========================================
 // 4. MAIN REGISTRATION MODULE
-// ==========================================
 let currentSearchId = ""; 
 
 async function handleSearch() {
@@ -157,7 +143,7 @@ async function handleSearch() {
                         </select>
                         <input type="date" class="cyber-input runner-dob" style="flex: 1;" required>
                     </div>
-                    ${isTimed ? `<div style="color: #93c5fd; font-size: 0.85rem; text-align: center;">⏱️ TIMED: Chip assigned at NovaRace counter.</div>` : `<input type="text" class="cyber-input runner-bib" placeholder="Assign Bib Number" required>`}
+                    ${isTimed ? `<div style="color: #93c5fd; font-size: 0.85rem; text-align: center;">⏱️ TIMED: Connect with NovaRace rep for timing chip.</div>` : `<input type="text" class="cyber-input runner-bib" placeholder="Assign Bib Number" required>`}
                 </div>
             </div>`;
             runnerCount++;
@@ -192,144 +178,11 @@ async function saveRunners() {
     const result = await submitParticipants(participants);
 
     if (result && result.success) {
-        document.getElementById('registration-results').innerHTML = `<div class="giant-bib-display">SUCCESS!</div><p style="text-align:center;">Registration marked complete!</p>`;
+        document.getElementById('registration-results').innerHTML = `<div class="giant-bib-display">SUCCESS!</div><p style="text-align:center;">Data saved to Main Sheet and NovaRace Sheet!</p>`;
         document.getElementById('search-input').value = ""; 
     } else {
         alert("Failed to save data. Please try again.");
         document.getElementById('save-btn').innerText = "Save & Issue Bibs"; document.getElementById('save-btn').disabled = false;
-    }
-}
-
-// ==========================================
-// 5. NOVARACE / TIMED BIBS MODULE
-// ==========================================
-let currentTimedSearchId = "";
-
-async function handleTimedSearch() {
-    const searchInput = document.getElementById('timed-search-input').value.trim();
-    const resultsContainer = document.getElementById('timed-results');
-    if (!searchInput) return alert("Please enter a valid search query");
-    currentTimedSearchId = searchInput; // Safe backup of ID
-
-    resultsContainer.innerHTML = `<div style="text-align: center; color: var(--accent-yellow); padding: 20px;"><div class="loader-spinner"></div>Looking up registration...</div>`;
-    
-    const result = await lookupParticipant(searchInput);
-
-    if (!result || !result.registered) {
-        return resultsContainer.innerHTML = `
-            <div class="refund-alert">
-                <h3>❌ INCOMPLETE REGISTRATION</h3>
-                <p>This runner has not passed through the main Registration desk yet. Please direct them there first.</p>
-            </div>
-        `;
-    }
-
-    // Runner found. Generate Timed Assignment Cards
-    let html = `<div class="cards-grid">`;
-    let needsChipCount = 0;
-
-    result.participants.forEach(p => {
-        const isUntimed = p.format.toUpperCase().includes("UNTIMED");
-        const alreadyAssigned = p.bib !== "TIMED-CHIP-PENDING" && !isUntimed;
-
-        if (isUntimed) {
-            // UNTIMED: Locked Informational Card
-            html += `
-            <div class="runner-card" style="border-color: #64748b; opacity: 0.8;">
-                <div class="card-header" style="background: rgba(100, 116, 139, 0.2); color: #94a3b8;">
-                    ${p.name} <span class="format-badge" style="background: #64748b; color: white;">${p.format}</span>
-                </div>
-                <div class="card-body" style="text-align: center; color: #94a3b8;">
-                    <p>UNTIMED RUNNER</p>
-                    <p>Bib #${p.bib} assigned at main desk.</p>
-                    <p><strong>No timing chip required.</strong></p>
-                </div>
-            </div>`;
-        } else if (alreadyAssigned) {
-            // TIMED (Already Assigned): Locked Card
-            html += `
-            <div class="runner-card" style="border-color: #10b981; opacity: 0.8;">
-                <div class="card-header" style="background: rgba(16, 185, 129, 0.2);">
-                    ${p.name} <span class="format-badge" style="background: #10b981; color: white;">${p.format}</span>
-                </div>
-                <div class="card-body" style="text-align: center;">
-                    <p style="color: #10b981; font-weight: bold;">✅ CHIP ASSIGNED</p>
-                    <p>Bib: <strong>${p.bib}</strong></p>
-                    <p>Chip ID: <strong>${p.transponderId}</strong></p>
-                </div>
-            </div>`;
-        } else {
-            // TIMED (Needs Chip): Input Card
-            needsChipCount++;
-            html += `
-            <div class="runner-card timed-input-card" data-name="${p.name}">
-                <div class="card-header" style="border-color: var(--accent-yellow);">
-                    <span style="color: var(--accent-yellow); font-size: 1.2rem;">${p.name}</span>
-                    <span class="format-badge">${p.format}</span>
-                </div>
-                <div class="card-body">
-                    <input type="text" class="cyber-input timed-bib-input" placeholder="Scan/Enter Bib Number" required>
-                    <input type="text" class="cyber-input timed-chip-input" placeholder="Scan/Enter Transponder ID" required>
-                </div>
-            </div>`;
-        }
-    });
-
-    html += `</div>`;
-    
-    // Only show the Save button if there are actual chips that need to be assigned
-    if (needsChipCount > 0) {
-        html += `
-        <div style="margin-top: 20px; text-align: center;">
-            <button class="cyber-btn" id="save-timed-btn" onclick="saveTimedBibs()">Assign Chips</button>
-        </div>`;
-    }
-
-    resultsContainer.innerHTML = html;
-}
-
-async function saveTimedBibs() {
-    const cards = document.querySelectorAll('.timed-input-card');
-    let participants = [];
-    let isValid = true;
-
-    cards.forEach(card => {
-        const name = card.getAttribute('data-name');
-        const bib = card.querySelector('.timed-bib-input').value.trim();
-        const transponder = card.querySelector('.timed-chip-input').value.trim();
-
-        if (!bib || !transponder) isValid = false;
-
-        participants.push({
-            bookingId: currentTimedSearchId, // Uses the global tracked ID from the lookup function
-            name: name,
-            bibNumber: bib,
-            transponderId: transponder
-        });
-    });
-
-    if (!isValid) return alert("Action Required: Please enter both the Bib Number and Transponder ID for all runners requiring a chip.");
-
-    const saveBtn = document.getElementById('save-timed-btn');
-    saveBtn.innerText = "Assigning...";
-    saveBtn.disabled = true;
-
-    const result = await updateTimedParticipants(participants);
-
-    if (result && result.success) {
-        document.getElementById('timed-results').innerHTML = `
-            <div class="giant-bib-display" style="font-size: 3rem; color: #10b981; border-color: #10b981; text-shadow: 0 0 15px rgba(16,185,129,0.4);">
-                ASSIGNED!
-            </div>
-            <p style="text-align: center; color: var(--text-muted); margin-top: 10px;">
-                Chips linked successfully.
-            </p>
-        `;
-        document.getElementById('timed-search-input').value = ""; 
-    } else {
-        alert("Failed to assign chips. Please try again.");
-        saveBtn.innerText = "Assign Chips";
-        saveBtn.disabled = false;
     }
 }
 

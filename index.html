@@ -17,7 +17,6 @@
         <div class="nav-links">
             <button class="nav-btn active" onclick="switchTab('dashboard', event)">Overview</button>
             <button class="nav-btn" onclick="switchTab('registration', event)">Registration</button>
-            <button class="nav-btn" onclick="switchTab('timed-bibs', event)">NovaRace (Timed)</button>
             <button class="nav-btn" onclick="switchTab('racekit', event)">Race Kit</button>
         </div>
     </nav>
@@ -29,7 +28,6 @@
     <nav class="mobile-only-nav">
         <button class="nav-btn active" onclick="switchTab('dashboard', event)">Overview</button>
         <button class="nav-btn" onclick="switchTab('registration', event)">Register</button>
-        <button class="nav-btn" onclick="switchTab('timed-bibs', event)">NovaRace</button>
         <button class="nav-btn" onclick="switchTab('racekit', event)">Kits</button>
     </nav>
 
@@ -80,39 +78,27 @@
         <section id="registration" class="page-section glass-card">
             <h2>Verify Runner</h2>
             <div class="search-tabs">
-                <button class="search-tab active" onclick="switchSearchMode('id', 'reg', event)">Booking ID</button>
-                <button class="search-tab" onclick="switchSearchMode('email', 'reg', event)">Email ID</button>
-                <button class="search-tab" style="color: var(--accent-yellow);" onclick="switchSearchMode('qr', 'reg', event)">[+] Scan QR</button>
+                <button class="search-tab active" onclick="switchSearchMode('id', event)">Booking ID</button>
+                <button class="search-tab" onclick="switchSearchMode('email', event)">Email ID</button>
+                <button class="search-tab" style="color: var(--accent-yellow);" onclick="switchSearchMode('qr', event)">[+] Scan QR</button>
             </div>
+            
             <div class="input-group" id="manual-input-group">
                 <input type="text" id="search-input" class="cyber-input" placeholder="Enter ID (e.g. DFCG...)">
                 <button class="cyber-btn" onclick="handleSearch()">Search</button>
             </div>
-            <div id="registration-results" style="margin-top: 30px;"></div>
-        </section>
 
-        <section id="timed-bibs" class="page-section glass-card">
-            <h2>NovaRace: Chip Assignment</h2>
-            <div class="search-tabs">
-                <button class="search-tab active" onclick="switchSearchMode('id', 'timed', event)">Booking ID</button>
-                <button class="search-tab" onclick="switchSearchMode('email', 'timed', event)">Email ID</button>
-                <button class="search-tab" style="color: var(--accent-yellow);" onclick="switchSearchMode('qr', 'timed', event)">[+] Scan QR</button>
+            <div id="qr-reader-group" style="display: none; width: 100%; max-width: 400px; margin: 20px auto 0; border: 2px solid var(--accent-yellow); border-radius: 8px; overflow: hidden; background: white;">
+                <div id="qr-reader" style="width: 100%;"></div>
             </div>
-            <div class="input-group" id="timed-manual-input-group">
-                <input type="text" id="timed-search-input" class="cyber-input" placeholder="Enter ID (e.g. DFCG...)">
-                <button class="cyber-btn" onclick="handleTimedSearch()">Search</button>
-            </div>
-            <div id="timed-results" style="margin-top: 30px;"></div>
+
+            <div id="registration-results" style="margin-top: 30px;"></div>
         </section>
 
         <section id="racekit" class="page-section glass-card">
             <h2>Race Kit Distribution</h2>
             <p style="color: var(--text-muted);">Kit distribution module goes here.</p>
         </section>
-
-        <div id="global-qr-group" style="display: none; width: 100%; max-width: 400px; margin: 20px auto; border: 2px solid var(--accent-yellow); border-radius: 8px; overflow: hidden; background: white;">
-            <div id="qr-reader" style="width: 100%;"></div>
-        </div>
 
     </main>
 
