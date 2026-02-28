@@ -98,7 +98,6 @@ async function handleSearch() {
     const searchInput = document.getElementById('search-input').value.trim();
     const resultsContainer = document.getElementById('registration-results');
     if (!searchInput) return alert("Please enter a valid search query");
-    currentSearchId = searchInput;
 
     resultsContainer.innerHTML = `<div style="text-align: center; color: var(--accent-yellow); padding: 20px;"><div class="loader-spinner"></div>Searching database...</div>`;
     const result = await lookupBooking(searchInput);
@@ -109,6 +108,9 @@ async function handleSearch() {
     if (result.isRefund) {
         return resultsContainer.innerHTML = `<div class="refund-alert"><h3>⚠️ REFUNDED</h3><p>Do not issue a bib or kit.</p></div>`;
     }
+
+    // THE FIX: Set the global search ID to the TRUE Booking ID returned by the backend
+    currentSearchId = result.bookingId; 
 
     if (result.alreadyRegistered) {
         let html = `<div class="refund-alert" style="background: rgba(16, 185, 129, 0.2); border-color: #10b981; color: #a7f3d0;"><h3>✅ ALREADY REGISTERED</h3></div><div class="cards-grid">`;
